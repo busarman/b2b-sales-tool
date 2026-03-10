@@ -90,15 +90,15 @@ export default function CnhiSpotPage() {
   }, [items, brand, search]);
 
   return (
-    <main className="min-h-dvh bg-zinc-100 pb-10 text-zinc-950">
-      <div className="sticky top-0 z-20 bg-zinc-950 text-white shadow-sm">
-        <div className="mx-auto max-w-md px-4 pb-4 pt-5">
+    <main className="min-h-dvh bg-zinc-100 pb-[calc(2.5rem+env(safe-area-inset-bottom))] text-zinc-950">
+      <div className="sticky top-0 z-20 bg-zinc-950/95 text-white shadow-sm backdrop-blur">
+        <div className="mx-auto max-w-md px-4 pb-4 pt-5 md:max-w-3xl xl:max-w-6xl">
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <div className="text-xs uppercase tracking-[0.18em] text-white/50">
                 B2B SALES TOOL
               </div>
-              <h1 className="mt-1 text-2xl font-semibold">Техника CNHi SPOT</h1>
+              <h1 className="mt-1 truncate text-2xl font-semibold">Техника CNHi SPOT</h1>
               <p className="mt-1 text-sm text-white/70">
                 Глобально доступная техника CNHi для дилеров
               </p>
@@ -106,7 +106,7 @@ export default function CnhiSpotPage() {
 
             <Link
               href="/"
-              className="rounded-full border border-white/20 px-3 py-1.5 text-xs text-white"
+              className="inline-flex min-h-10 shrink-0 items-center rounded-full border border-white/20 px-3 py-1.5 text-xs text-white hover:bg-white/10 active:scale-[0.98]"
             >
               Главная
             </Link>
@@ -117,19 +117,19 @@ export default function CnhiSpotPage() {
             могут быть проданы до момента подтверждения.
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 max-w-3xl">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск по бренду, типу, модели, ID"
-              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/35 focus:bg-white/15"
             />
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="no-scrollbar -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 md:mx-0 md:max-w-4xl md:flex-wrap md:overflow-visible md:px-0">
             <button
               onClick={() => setBrand("")}
-              className={`rounded-full px-3 py-2 text-xs font-medium ${
+              className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium hover:bg-white/20 active:scale-[0.98] ${
                 brand === "" ? "bg-white text-zinc-950" : "bg-white/10 text-white"
               }`}
             >
@@ -140,7 +140,7 @@ export default function CnhiSpotPage() {
               <button
                 key={b}
                 onClick={() => setBrand(b)}
-                className={`rounded-full px-3 py-2 text-xs font-medium ${
+                className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium hover:bg-white/20 active:scale-[0.98] ${
                   brand === b ? "bg-white text-zinc-950" : "bg-white/10 text-white"
                 }`}
               >
@@ -151,28 +151,29 @@ export default function CnhiSpotPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 py-4">
-        <div className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
+      <div className="mx-auto max-w-md px-4 py-5 md:max-w-3xl xl:max-w-6xl">
+        <div className="mb-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
           Позиций: {loading ? "..." : filtered.length}
         </div>
 
         {loading && (
-          <div className="rounded-3xl bg-white p-4 text-sm shadow">
+          <div className="card-lift rounded-3xl p-4 text-sm">
             Загрузка...
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="rounded-3xl bg-white p-4 text-sm shadow">
+          <div className="card-lift rounded-3xl p-4 text-sm">
             Ничего не найдено
           </div>
         )}
 
-        <div className="space-y-4">
-          {filtered.map((item) => (
+        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {filtered.map((item, idx) => (
             <div
               key={item.id}
-              className="rounded-3xl bg-white shadow ring-1 ring-zinc-200"
+              className="card-lift reveal-up flex h-full flex-col rounded-3xl"
+              style={{ animationDelay: `${Math.min(idx, 8) * 45}ms` }}
             >
               <div className="border-b border-zinc-200 px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
@@ -191,7 +192,7 @@ export default function CnhiSpotPage() {
                 </div>
               </div>
 
-              <div className="space-y-3 px-4 py-4">
+              <div className="flex flex-1 flex-col space-y-3 px-4 py-4">
                 <Info label="External ID" value={item.external_id} />
                 <Info label="Статус" value={item.status} />
 
@@ -214,16 +215,18 @@ export default function CnhiSpotPage() {
                   </div>
                 </div>
 
-                {isUrl(item.specification) && (
-                  <a
-                    href={item.specification ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded-2xl border px-4 py-3 text-center text-sm"
-                  >
-                    Открыть спецификацию
-                  </a>
-                )}
+                <div className="mt-auto">
+                  {isUrl(item.specification) && (
+                    <a
+                      href={item.specification ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded-2xl border px-4 py-3 text-center text-sm hover:border-zinc-950 hover:bg-zinc-950 hover:text-white active:scale-[0.99]"
+                    >
+                      Открыть спецификацию
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -241,7 +244,7 @@ function Info({
   value?: string | number | null;
 }) {
   return (
-    <div className="rounded-2xl bg-zinc-100 p-3">
+    <div className="rounded-2xl bg-zinc-100 p-3 transition-colors hover:bg-zinc-200/70">
       <div className="text-xs uppercase text-zinc-500">{label}</div>
       <div className="text-sm font-medium">{value ?? "—"}</div>
     </div>

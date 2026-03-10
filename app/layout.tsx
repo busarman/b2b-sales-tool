@@ -1,4 +1,10 @@
 import "./globals.css";
+import { Manrope } from "next/font/google";
+
+const manrope = Manrope({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-main",
+});
 
 export const metadata = {
   title: "B2B Sales Tool",
@@ -12,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body className={`${manrope.variable} font-[var(--font-main)]`}>{children}</body>
     </html>
   );
 }
