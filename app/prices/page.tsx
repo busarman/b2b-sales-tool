@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -28,6 +27,16 @@ type SpotItem = {
 function isUrl(value?: string | null) {
   if (!value) return false;
   return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function statusLabel(status?: string | null) {
+  if (!status) return "SPOT";
+  if (status === "Stock_CNH_Europe") return "CNH Europe";
+  return status;
+}
+
+function statusClass() {
+  return "bg-amber-100 text-amber-800 border-amber-300";
 }
 
 export default function CnhiSpotPage() {
@@ -58,13 +67,15 @@ export default function CnhiSpotPage() {
   }, []);
 
   const brands = useMemo(() => {
-    return Array.from(
+    const values = Array.from(
       new Set(
         items
           .map((i) => i.brand?.trim())
           .filter((v): v is string => Boolean(v))
       )
-    ).sort((a, b) => a.localeCompare(b, "ru"));
+    );
+
+    return values.sort((a, b) => a.localeCompare(b, "ru"));
   }, [items]);
 
   const filtered = useMemo(() => {
@@ -81,6 +92,7 @@ export default function CnhiSpotPage() {
           item.model,
           item.external_id,
           item.delivery_terms,
+          item.delivery,
         ]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q));
@@ -90,142 +102,161 @@ export default function CnhiSpotPage() {
   }, [items, brand, search]);
 
   return (
-    <main className="min-h-dvh bg-zinc-100 pb-[calc(2.5rem+env(safe-area-inset-bottom))] text-zinc-950">
-      <div className="sticky top-0 z-20 bg-zinc-950/95 text-white shadow-sm backdrop-blur">
-        <div className="mx-auto max-w-md px-4 pb-4 pt-5 md:max-w-3xl xl:max-w-6xl">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+    <main className="min-h-dvh bg-zinc-100 pb-10">
+      <div className="sticky top-0 z-20 bg-zinc-950 text-white shadow-sm">
+        <div className="mx-auto max-w-md px-4 pb-4 pt-5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-white/50">
                 B2B SALES TOOL
               </div>
-              <h1 className="mt-1 truncate text-2xl font-semibold">Техника CNHi SPOT</h1>
-              <p className="mt-1 text-sm text-white/70">
-                Глобально доступная техника CNHi для дилеров
+
+              <h1 className="mt-1 text-2xl font-semibold">
+                Техника CNHi SPOT
+              </h1>
+
+              <p className="text-sm text-white/60">
+                Глобально доступные позиции для дилеров
               </p>
             </div>
 
             <Link
               href="/"
-              className="inline-flex min-h-10 shrink-0 items-center rounded-full border border-white/20 px-3 py-1.5 text-xs text-white hover:bg-white/10 active:scale-[0.98]"
+              className="rounded-full border border-white/20 px-3 py-1.5 text-xs"
             >
               Главная
             </Link>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-100">
-            Важно: это глобальный SPOT-сток. Позиции доступны для разных рынков и
-            могут быть проданы до момента подтверждения.
+          <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm leading-5 text-amber-100">
+            Важно: это глобальный SPOT-сток. Позиции доступны для разных рынков
+            и могут быть проданы до момента подтверждения.
           </div>
 
-          <div className="mt-4 max-w-3xl">
+          <div className="mt-4">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по бренду, типу, модели, ID"
-              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/35 focus:bg-white/15"
+              placeholder="Поиск: бренд / модель / ID / delivery"
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
             />
           </div>
 
-          <div className="no-scrollbar -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 md:mx-0 md:max-w-4xl md:flex-wrap md:overflow-visible md:px-0">
-            <button
-              onClick={() => setBrand("")}
-              className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium hover:bg-white/20 active:scale-[0.98] ${
-                brand === "" ? "bg-white text-zinc-950" : "bg-white/10 text-white"
-              }`}
-            >
-              Все
-            </button>
-
-            {brands.map((b) => (
+          <div className="mt-3 -mx-4 overflow-x-auto px-4">
+            <div className="flex w-max gap-2">
               <button
-                key={b}
-                onClick={() => setBrand(b)}
-                className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium hover:bg-white/20 active:scale-[0.98] ${
-                  brand === b ? "bg-white text-zinc-950" : "bg-white/10 text-white"
+                onClick={() => setBrand("")}
+                className={`rounded-full px-3 py-2 text-xs whitespace-nowrap ${
+                  brand === "" ? "bg-white text-zinc-950" : "bg-white/10"
                 }`}
               >
-                {b}
+                Все бренды
               </button>
-            ))}
+
+              {brands.map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBrand(b)}
+                  className={`rounded-full px-3 py-2 text-xs whitespace-nowrap ${
+                    brand === b ? "bg-white text-zinc-950" : "bg-white/10"
+                  }`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 py-5 md:max-w-3xl xl:max-w-6xl">
-        <div className="mb-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
+      <div className="mx-auto max-w-md px-4 py-4">
+        <div className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
           Позиций: {loading ? "..." : filtered.length}
         </div>
 
         {loading && (
-          <div className="card-lift rounded-3xl p-4 text-sm">
+          <div className="rounded-3xl bg-white p-4 text-sm shadow">
             Загрузка...
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="card-lift rounded-3xl p-4 text-sm">
+          <div className="rounded-3xl bg-white p-4 text-sm shadow">
             Ничего не найдено
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-          {filtered.map((item, idx) => (
+        <div className="space-y-4">
+          {filtered.map((item) => (
             <div
               key={item.id}
-              className="card-lift reveal-up flex h-full flex-col rounded-3xl"
-              style={{ animationDelay: `${Math.min(idx, 8) * 45}ms` }}
+              className="rounded-[28px] bg-white shadow ring-1 ring-zinc-200"
             >
               <div className="border-b border-zinc-200 px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate text-[22px] font-semibold text-zinc-950">
+                    <div className="truncate text-[21px] font-semibold text-zinc-950">
                       {item.brand} {item.model}
                     </div>
-                    <div className="mt-1 text-sm font-medium text-zinc-600">
+
+                    <div className="mt-1 text-sm text-zinc-500">
                       {item.type ?? "—"} • {item.production_year ?? "—"}
                     </div>
                   </div>
 
-                  <div className="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                    SPOT
+                  <div
+                    className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${statusClass()}`}
+                  >
+                    {statusLabel(item.status)}
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-col space-y-3 px-4 py-4">
-                <Info label="External ID" value={item.external_id} />
-                <Info label="Статус" value={item.status} />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Info label="Delivery terms" value={item.delivery_terms} />
-                  <Info label="Срок поставки" value={item.delivery} />
-                </div>
-
+              <div className="space-y-3 px-4 py-4">
                 <div className="rounded-2xl bg-zinc-950 p-4 text-white">
                   <div className="text-xs uppercase tracking-[0.14em] text-white/60">
                     Цена
                   </div>
+
                   <div className="mt-2 text-2xl font-semibold">
                     {item.price_with_vat
                       ? Number(item.price_with_vat).toLocaleString("ru-RU")
                       : "—"}
                   </div>
+
                   <div className="text-sm text-white/60">
                     {item.contract_currency ?? ""}
                   </div>
                 </div>
 
-                <div className="mt-auto">
-                  {isUrl(item.specification) && (
+                <Info label="External ID" value={item.external_id} />
+                <Info label="Delivery terms" value={item.delivery_terms} />
+                <Info label="Срок поставки" value={item.delivery} />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Info label="Тип" value={item.type} />
+                  <Info label="Год" value={item.production_year} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {isUrl(item.specification) ? (
                     <a
                       href={item.specification ?? undefined}
                       target="_blank"
                       rel="noreferrer"
-                      className="block rounded-2xl border px-4 py-3 text-center text-sm hover:border-zinc-950 hover:bg-zinc-950 hover:text-white active:scale-[0.99]"
+                      className="block rounded-2xl border border-zinc-300 px-4 py-3 text-center text-sm font-medium"
                     >
-                      Открыть спецификацию
+                      Спецификация
                     </a>
+                  ) : (
+                    <div className="rounded-2xl border border-zinc-200 px-4 py-3 text-center text-sm text-zinc-400">
+                      Нет ссылки
+                    </div>
                   )}
+
+                  <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-800">
+                    SPOT
+                  </div>
                 </div>
               </div>
             </div>
@@ -244,7 +275,7 @@ function Info({
   value?: string | number | null;
 }) {
   return (
-    <div className="rounded-2xl bg-zinc-100 p-3 transition-colors hover:bg-zinc-200/70">
+    <div className="rounded-2xl bg-zinc-100 p-3">
       <div className="text-xs uppercase text-zinc-500">{label}</div>
       <div className="text-sm font-medium">{value ?? "—"}</div>
     </div>
