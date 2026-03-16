@@ -29,16 +29,16 @@ export default function ComparePage() {
   }
 
   return (
-    <main className="min-h-dvh bg-zinc-100 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      <div className="sticky top-0 z-20 bg-zinc-950/95 text-white shadow-sm backdrop-blur">
-        <div className="mx-auto max-w-md px-4 pb-4 pt-5 md:max-w-3xl xl:max-w-6xl">
+    <main className="min-h-dvh bg-zinc-100 pb-8">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-zinc-950/95 text-white shadow-sm backdrop-blur">
+        <div className="mx-auto max-w-md px-4 pb-3 pt-4 md:max-w-3xl xl:max-w-6xl">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-white/45">
                 B2B SALES TOOL
               </div>
-              <h1 className="mt-1 truncate text-2xl font-semibold">Сравнение техники</h1>
-              <p className="mt-1 text-sm text-white/60">
+              <h1 className="mt-1 text-xl font-semibold">Сравнение техники</h1>
+              <p className="mt-1 text-xs text-white/60">
                 Сравнение выбранных позиций из наличия
               </p>
             </div>
@@ -46,69 +46,85 @@ export default function ComparePage() {
             <div className="flex shrink-0 flex-wrap justify-end gap-2">
               <button
                 onClick={handleClear}
-                className="inline-flex min-h-10 items-center rounded-full border border-white/20 px-3 py-1.5 text-xs hover:bg-white/10 active:scale-[0.98]"
+                className="inline-flex min-h-9 items-center rounded-full border border-white/15 px-3 text-xs text-white/90"
               >
                 Очистить
               </button>
-
               <Link
                 href="/inventory"
-                className="inline-flex min-h-10 items-center rounded-full border border-white/20 px-3 py-1.5 text-xs hover:bg-white/10 active:scale-[0.98]"
+                className="inline-flex min-h-9 items-center rounded-full border border-white/15 px-3 text-xs text-white/90"
               >
                 Назад
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="mx-auto max-w-md px-4 py-4 md:max-w-3xl xl:max-w-6xl">
         {items.length === 0 ? (
-          <div className="card-lift reveal-up rounded-3xl p-6">
-            <div className="text-lg font-semibold">Сравнение пока пустое</div>
-            <div className="mt-2 text-sm text-zinc-500">
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="text-lg font-semibold text-zinc-950">
+              Сравнение пока пустое
+            </div>
+            <div className="mt-2 text-sm leading-6 text-zinc-500">
               Добавь до 3 позиций из раздела «Техника в наличии».
             </div>
 
             <Link
               href="/inventory"
-              className="mt-4 inline-block rounded-2xl bg-zinc-950 px-4 py-3 text-sm text-white hover:bg-zinc-800 active:scale-[0.99]"
+              className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-zinc-950 px-4 text-sm font-medium text-white"
             >
               Открыть наличие
             </Link>
           </div>
         ) : (
           <>
-            <div className="mb-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {items.map((item, idx) => (
-                <div
+            <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((item) => (
+                <article
                   key={item.id}
-                  className="card-lift reveal-up rounded-3xl p-4"
-                  style={{ animationDelay: `${Math.min(idx, 8) * 40}ms` }}
+                  className="rounded-[26px] border border-zinc-200 bg-white p-4 shadow-sm"
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-lg font-semibold">
+                      <div className="truncate text-lg font-semibold text-zinc-950">
                         {item.brand} {item.model}
                       </div>
-                      <div className="text-sm text-zinc-500">
+                      <div className="mt-1 text-sm text-zinc-500">
                         {item.production_year ?? "—"} • {item.location ?? "—"}
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleRemove(item.id)}
-                      className="rounded-full border px-3 py-1 text-xs hover:border-zinc-950 hover:bg-zinc-950 hover:text-white active:scale-[0.98]"
+                      className="shrink-0 rounded-full border border-zinc-300 px-3 py-1.5 text-xs text-zinc-700"
                     >
                       Убрать
                     </button>
                   </div>
-                </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-2 rounded-[18px] bg-zinc-100 px-3 py-2.5">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                        Цена
+                      </div>
+                      <div className="mt-1 text-base font-semibold text-zinc-950">
+                        {item.price_with_vat
+                          ? Number(item.price_with_vat).toLocaleString("ru-RU")
+                          : "—"}
+                      </div>
+                    </div>
+                    <div className="text-sm text-zinc-500">
+                      {item.contract_currency ?? "—"}
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
 
-            <div className="card-lift reveal-up overflow-x-auto rounded-3xl" style={{ animationDelay: "140ms" }}>
-              <table className="min-w-full border-collapse">
+            <div className="overflow-x-auto rounded-[28px] border border-zinc-200 bg-white shadow-sm">
+              <table className="min-w-full border-collapse text-sm">
                 <tbody>
                   <CompareRow
                     label="Бренд"
@@ -130,7 +146,9 @@ export default function ComparePage() {
                   />
                   <CompareRow
                     label="Статус"
-                    values={items.map((i) => STATUS_LABEL[i.status ?? ""] ?? i.status ?? "—")}
+                    values={items.map(
+                      (i) => STATUS_LABEL[i.status ?? ""] ?? i.status ?? "—"
+                    )}
                   />
                   <CompareRow
                     label="External ID"
@@ -181,12 +199,14 @@ function CompareRow({
 }) {
   return (
     <tr className="border-b border-zinc-200 last:border-b-0">
-      <td className="w-52 whitespace-nowrap bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+      <td className="w-36 min-w-36 bg-zinc-50 px-3 py-3 align-top text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:w-44 sm:min-w-44 sm:px-4">
         {label}
       </td>
-
       {values.map((value, idx) => (
-        <td key={idx} className="px-4 py-3 text-sm text-zinc-950 align-top break-words">
+        <td
+          key={idx}
+          className="min-w-40 px-3 py-3 align-top text-sm leading-5 text-zinc-950 break-words sm:px-4"
+        >
           {value}
         </td>
       ))}
