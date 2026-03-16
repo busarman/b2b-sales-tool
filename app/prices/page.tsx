@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import {
+  COMPARE_STORAGE_EVENT,
+  addCompareItem,
+  getCompareCount,
+  type CompareItem,
+} from "../lib/compare-storage";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,6 +46,7 @@ export default function CnhiSpotPage() {
   const [loading, setLoading] = useState(true);
   const [brand, setBrand] = useState("");
   const [search, setSearch] = useState("");
+  const [compareCount, setCompareCount] = useState(() => getCompareCount());
 
   useEffect(() => {
     async function load() {
@@ -60,6 +67,20 @@ export default function CnhiSpotPage() {
     }
 
     load();
+  }, []);
+
+  useEffect(() => {
+    function syncCompareCount() {
+      setCompareCount(getCompareCount());
+    }
+
+    window.addEventListener("storage", syncCompareCount);
+    window.addEventListener(COMPARE_STORAGE_EVENT, syncCompareCount);
+
+    return () => {
+      window.removeEventListener("storage", syncCompareCount);
+      window.removeEventListener(COMPARE_STORAGE_EVENT, syncCompareCount);
+    };
   }, []);
 
   const brands = useMemo(() => {
@@ -97,6 +118,22 @@ export default function CnhiSpotPage() {
     });
   }, [items, brand, search]);
 
+  function handleAddCompare(item: SpotItem) {
+    const result = addCompareItem(toCompareItem(item));
+
+    if (!result.ok && result.reason === "exists") {
+      alert("Эта техника уже добавлена в сравнение.");
+      return;
+    }
+
+    if (!result.ok && result.reason === "limit") {
+      alert("Можно сравнивать максимум 3 позиции.");
+      return;
+    }
+
+    setCompareCount(result.items.length);
+  }
+
   return (
     <main className="min-h-dvh bg-zinc-100 pb-8">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-zinc-950 text-white shadow-sm">
@@ -112,12 +149,20 @@ export default function CnhiSpotPage() {
               </p>
             </div>
 
-            <Link
-              href="/"
-              className="inline-flex min-h-9 shrink-0 items-center rounded-full border border-white/15 px-3 text-xs text-white/90"
-            >
-              Главная
-            </Link>
+            <div className="flex shrink-0 gap-2">
+              <Link
+                href="/compare"
+                className="inline-flex min-h-9 items-center rounded-full bg-white px-3 text-xs font-medium text-zinc-950"
+              >
+                Сравнение{compareCount > 0 ? ` (${compareCount})` : ""}
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex min-h-9 items-center rounded-full border border-white/15 px-3 text-xs text-white/90"
+              >
+                Главная
+              </Link>
+            </div>
           </div>
 
           <div className="mt-3 rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm leading-5 text-amber-100">
@@ -220,6 +265,13 @@ export default function CnhiSpotPage() {
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleAddCompare(item)}
+                  className="col-span-2 min-h-11 rounded-2xl border border-zinc-300 px-4 text-sm font-medium text-zinc-950 transition active:scale-[0.99]"
+                >
+                  + Сравнить
+                </button>
+
                 {isUrl(item.specification) ? (
                   <a
                     href={item.specification ?? undefined}
@@ -245,6 +297,28 @@ export default function CnhiSpotPage() {
       </div>
     </main>
   );
+}
+
+function toCompareItem(item: SpotItem): CompareItem {
+  return {
+    id: String(item.id),
+    source: "spot",
+    brand: item.brand ?? null,
+    model: item.model ?? null,
+    type: item.type ?? null,
+    production_year: item.production_year ?? null,
+    status: item.status ?? null,
+    location: null,
+    price_with_vat: item.price_with_vat ?? null,
+    contract_currency: item.contract_currency ?? null,
+    specification: item.specification ?? null,
+    external_id: item.external_id ?? null,
+    serial_number: null,
+    arrival_date: null,
+    warranty: null,
+    delivery_terms: item.delivery_terms ?? null,
+    delivery: item.delivery ?? null,
+  };
 }
 
 function BrandPill({

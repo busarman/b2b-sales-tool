@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
+  COMPARE_STORAGE_EVENT,
   addCompareItem,
   getCompareCount,
   type CompareItem,
@@ -95,6 +96,20 @@ export default function InventoryPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    function syncCompareCount() {
+      setCompareCount(getCompareCount());
+    }
+
+    window.addEventListener("storage", syncCompareCount);
+    window.addEventListener(COMPARE_STORAGE_EVENT, syncCompareCount);
+
+    return () => {
+      window.removeEventListener("storage", syncCompareCount);
+      window.removeEventListener(COMPARE_STORAGE_EVENT, syncCompareCount);
+    };
+  }, []);
+
   const brands = useMemo(() => {
     const values = Array.from(
       new Set(
@@ -124,7 +139,7 @@ export default function InventoryPage() {
   }, [items, brand, status, search]);
 
   function handleAddCompare(item: Item) {
-    const result = addCompareItem(item as CompareItem);
+    const result = addCompareItem(toCompareItem(item));
 
     if (!result.ok && result.reason === "exists") {
       alert("Эта техника уже добавлена в сравнение.");
@@ -316,6 +331,28 @@ export default function InventoryPage() {
       </div>
     </main>
   );
+}
+
+function toCompareItem(item: Item): CompareItem {
+  return {
+    id: item.id,
+    source: "inventory",
+    brand: item.brand ?? null,
+    model: item.model ?? null,
+    type: null,
+    production_year: item.production_year ?? null,
+    status: item.status ?? null,
+    location: item.location ?? null,
+    price_with_vat: item.price_with_vat ?? null,
+    contract_currency: item.contract_currency ?? null,
+    specification: item.specification ?? null,
+    external_id: item.external_id ?? null,
+    serial_number: item.serial_number ?? null,
+    arrival_date: item.arrival_date ?? null,
+    warranty: item.warranty ?? null,
+    delivery_terms: null,
+    delivery: null,
+  };
 }
 
 function FilterPill({
