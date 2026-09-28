@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SharePortalButton } from "./components/share-portal-button";
 
 const SCENARIOS = [
   "Быстро проверить наличие по РФ и найти ближайшую позицию под клиента.",
@@ -23,6 +24,8 @@ export default function HomePage() {
             Быстрый доступ к наличию, CNHi SPOT и сравнению позиций для
             ежедневной работы с клиентами.
           </p>
+
+          <SharePortalButton />
         </div>
       </section>
 
@@ -50,6 +53,15 @@ export default function HomePage() {
             title="Сравнение"
             description="Собери до 3 позиций из наличия и покажи клиенту разницу в одном экране."
             buttonLabel="Открыть сравнение"
+          />
+
+          <LauncherCard
+            href="https://disk.360.yandex.ru/client/shared"
+            eyebrow="Материалы для работы"
+            title="Общий доступ"
+            description="Брошюры, обучающие материалы и общие документы для дилеров и менеджеров."
+            buttonLabel="Открыть материалы"
+            external
           />
         </div>
 
@@ -80,16 +92,20 @@ function LauncherCard({
   title,
   description,
   buttonLabel,
+  external = false,
 }: {
   href: string;
   eyebrow: string;
   title: string;
   description: string;
   buttonLabel: string;
+  external?: boolean;
 }) {
   return (
     <Link
       href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer" : undefined}
       className="rounded-[30px] border border-zinc-200 bg-white p-5 shadow-sm transition active:scale-[0.99]"
     >
       <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">

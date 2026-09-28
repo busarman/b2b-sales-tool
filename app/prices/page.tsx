@@ -50,9 +50,15 @@ export default function CnhiSpotPage() {
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
+      let query = supabase
         .from("cnhi_spot")
-        .select("*")
+        .select("*");
+
+      if (process.env.NEXT_PUBLIC_STOCK_SYNC_ACTIVE === "true") {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query
         .order("brand", { ascending: true })
         .order("model", { ascending: true });
 
@@ -305,6 +311,7 @@ function toCompareItem(item: SpotItem): CompareItem {
     source: "spot",
     brand: item.brand ?? null,
     model: item.model ?? null,
+    configuration: null,
     type: item.type ?? null,
     production_year: item.production_year ?? null,
     status: item.status ?? null,

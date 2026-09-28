@@ -11,6 +11,7 @@ export type CompareItem = {
   source: CompareSource;
   brand?: string | null;
   model?: string | null;
+  configuration?: string | null;
   type?: string | null;
   production_year?: number | null;
   status?: string | null;
@@ -52,6 +53,10 @@ function normalizeCompareItem(value: unknown): CompareItem | null {
     source: item.source,
     brand: typeof item.brand === "string" || item.brand == null ? item.brand : null,
     model: typeof item.model === "string" || item.model == null ? item.model : null,
+    configuration:
+      typeof item.configuration === "string" || item.configuration == null
+        ? item.configuration
+        : null,
     type: typeof item.type === "string" || item.type == null ? item.type : null,
     production_year:
       typeof item.production_year === "number" || item.production_year == null

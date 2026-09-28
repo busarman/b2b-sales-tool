@@ -166,6 +166,7 @@ export default function ComparePage() {
                   { label: "Источник", values: items.map((item) => formatSource(item.source)) },
                   { label: "Бренд", values: items.map((item) => formatText(item.brand)) },
                   { label: "Модель", values: items.map((item) => formatText(item.model)) },
+                  { label: "Конфигурация", values: items.map((item) => formatText(item.configuration)) },
                   { label: "Тип", values: items.map((item) => formatText(item.type)) },
                   {
                     label: "Год",

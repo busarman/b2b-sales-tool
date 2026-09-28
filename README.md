@@ -1,5 +1,24 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Daily stock sync
+
+`GET /api/cron/sync-stock` downloads the latest `PQ for dealers_YYYYMMDD.xlsx`
+from a private or shared Yandex Disk folder, validates the `Append1` and
+`CNH_Spot_Предложение` sheets, and compares them with Supabase. The endpoint is
+protected by `CRON_SECRET`.
+
+The sync stays read-only while `STOCK_SYNC_APPLY=false`. Set it to `true` only
+after applying `supabase/migrations/20260922090000_stock_sync.sql` and reviewing
+a successful preview response. Set `NEXT_PUBLIC_STOCK_SYNC_ACTIVE=true` in the
+same deployment so the catalog hides records that disappeared from the source file.
+
+For a shared folder, set `YANDEX_DISK_PUBLIC_KEY` to its permanent link and
+`YANDEX_DISK_STOCK_PATH` to the path inside it (for example, `/CNH`).
+
+Required server-side variables are listed in `.env.example`. Never expose the
+Yandex OAuth token, Supabase service-role key, or cron secret through
+`NEXT_PUBLIC_*` variables.
+
 ## Getting Started
 
 First, run the development server:
