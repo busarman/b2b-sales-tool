@@ -145,10 +145,22 @@ function transformInventory(
     warranty: column(headers, ["Гарантия", "warranty"]),
   };
 
-  for (const [name, index] of Object.entries(columns)) {
+  const requiredColumns = {
+    model: columns.model,
+    configuration: columns.configuration,
+    externalId: columns.externalId,
+    serial: columns.serial,
+    year: columns.year,
+    arrival: columns.arrival,
+    status: columns.status,
+    specification: columns.specification,
+    warranty: columns.warranty,
+  };
+
+  for (const [name, index] of Object.entries(requiredColumns)) {
     if (index < 0) issues.push({ sheet: sheet.sheet, row: 1, message: `Нет колонки ${name}` });
   }
-  if (Object.values(columns).some((index) => index < 0)) return [];
+  if (Object.values(requiredColumns).some((index) => index < 0)) return [];
 
   const result: InventoryImportRow[] = [];
   const keys: Array<{ key: string; row: number }> = [];
@@ -215,10 +227,22 @@ function transformSpot(
     specification: column(headers, ["Ссылка на спецификацию", "specification"]),
   };
 
-  for (const [name, index] of Object.entries(columns)) {
+  const requiredColumns = {
+    externalId: columns.externalId,
+    brand: columns.brand,
+    type: columns.type,
+    model: columns.model,
+    year: columns.year,
+    status: columns.status,
+    deliveryTerms: columns.deliveryTerms,
+    delivery: columns.delivery,
+    specification: columns.specification,
+  };
+
+  for (const [name, index] of Object.entries(requiredColumns)) {
     if (index < 0) issues.push({ sheet: sheet.sheet, row: 1, message: `Нет колонки ${name}` });
   }
-  if (Object.values(columns).some((index) => index < 0)) return [];
+  if (Object.values(requiredColumns).some((index) => index < 0)) return [];
 
   const result: SpotImportRow[] = [];
   const keys: Array<{ key: string; row: number }> = [];
