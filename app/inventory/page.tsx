@@ -451,7 +451,7 @@ export default function InventoryPage() {
                 <div className={warrantyPrice ? "grid grid-cols-2 gap-4" : ""}>
                   <div className="min-w-0">
                     <div className="text-[11px] uppercase tracking-[0.16em] text-white/55">
-                      RRC
+                      РРЦ
                     </div>
                     <div className="mt-1 text-2xl font-semibold leading-none">
                       {formatRrcPrice(item.price_with_vat)}

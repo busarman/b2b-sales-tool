@@ -149,7 +149,7 @@ export default function ComparePage() {
 
                     <div className="text-right">
                       <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                        RRC
+                        РРЦ
                       </div>
                       <div className="mt-1 text-sm font-semibold text-zinc-950">
                         {formatPrice(item)}
@@ -180,7 +180,7 @@ export default function ComparePage() {
               <CompareBlock
                 title="Коммерция"
                 rows={[
-                  { label: "RRC", values: items.map((item) => formatPriceValue(item.price_with_vat)) },
+                  { label: "РРЦ", values: items.map((item) => formatPriceValue(item.price_with_vat)) },
                   {
                     label: "Валюта",
                     values: items.map((item) => formatText(item.contract_currency)),

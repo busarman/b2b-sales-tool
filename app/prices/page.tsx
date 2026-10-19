@@ -254,7 +254,7 @@ export default function CnhiSpotPage() {
 
               <div className="mt-3 rounded-[22px] border border-amber-300/30 bg-zinc-950 px-4 py-3 text-white">
                 <div className="text-[11px] uppercase tracking-[0.16em] text-amber-200/70">
-                  RRC
+                  РРЦ
                 </div>
                 <div className="mt-1 text-2xl font-semibold leading-none">
                   {formatRrcPrice(item.price_with_vat)}
