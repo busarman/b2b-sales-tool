@@ -9,6 +9,7 @@ import {
   getCompareCount,
   type CompareItem,
 } from "../lib/compare-storage";
+import { formatRrcPrice } from "../lib/pricing";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -450,14 +451,10 @@ export default function InventoryPage() {
                 <div className={warrantyPrice ? "grid grid-cols-2 gap-4" : ""}>
                   <div className="min-w-0">
                     <div className="text-[11px] uppercase tracking-[0.16em] text-white/55">
-                      Цена с НДС
+                      RRC
                     </div>
                     <div className="mt-1 text-2xl font-semibold leading-none">
-                      {item.price_with_vat
-                        ? Math.round(Number(item.price_with_vat)).toLocaleString("ru-RU", {
-                            maximumFractionDigits: 0,
-                          })
-                        : "—"}
+                      {formatRrcPrice(item.price_with_vat)}
                     </div>
                     <div className="mt-1 text-sm text-white/60">
                       {item.contract_currency ?? "Без валюты"}

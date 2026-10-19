@@ -10,6 +10,7 @@ import {
   type CompareItem,
   type CompareSource,
 } from "../lib/compare-storage";
+import { formatRrcPrice } from "../lib/pricing";
 
 const INVENTORY_STATUS_LABEL: Record<string, string> = {
   in_stock: "На складе",
@@ -148,7 +149,7 @@ export default function ComparePage() {
 
                     <div className="text-right">
                       <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                        Цена
+                        RRC
                       </div>
                       <div className="mt-1 text-sm font-semibold text-zinc-950">
                         {formatPrice(item)}
@@ -179,7 +180,7 @@ export default function ComparePage() {
               <CompareBlock
                 title="Коммерция"
                 rows={[
-                  { label: "Цена", values: items.map((item) => formatPriceValue(item.price_with_vat)) },
+                  { label: "RRC", values: items.map((item) => formatPriceValue(item.price_with_vat)) },
                   {
                     label: "Валюта",
                     values: items.map((item) => formatText(item.contract_currency)),
@@ -323,7 +324,7 @@ function formatNumber(value?: number | null) {
 }
 
 function formatPriceValue(value?: number | null) {
-  return typeof value === "number" ? value.toLocaleString("ru-RU") : "—";
+  return formatRrcPrice(value);
 }
 
 function formatPrice(item: CompareItem) {
