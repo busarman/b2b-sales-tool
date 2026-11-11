@@ -9,6 +9,7 @@ import {
 } from "@/lib/stock-sync/supabase";
 import { downloadYandexFile, findLatestStockWorkbook } from "@/lib/stock-sync/yandex";
 import type { WorkbookSheet } from "@/lib/stock-sync/types";
+import { sendSyncAlert } from "@/lib/stock-sync/alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,10 +81,14 @@ export async function GET(request: NextRequest) {
       ? await applyStockSync(transformed.inventory, transformed.spot, latest.name)
       : null;
 
-    let prices: Record<string, unknown> = { status: "not_configured" };
+    let prices: Record<string, unknown> = { status: "failed", error: "Price source is not configured" };
     const pricesDirectory = process.env.YANDEX_DISK_PRICES_PATH;
     if (pricesDirectory) {
       try {
+        const accessUntil = process.env.YANDEX_PRICES_ACCESS_UNTIL;
+        if (accessUntil && (!/^\d{4}-\d{2}-\d{2}$/.test(accessUntil) || new Date().toISOString().slice(0, 10) > accessUntil)) {
+          throw new Error("Срок доступа к прайсу истёк: требуется обновить доступ");
+        }
         const pricesKey = process.env.YANDEX_DISK_PRICES_PUBLIC_KEY || undefined;
         const priceFile = await findLatestStockWorkbook(token, pricesDirectory, pricesKey, /^PQ PL for dealers_\d{8}\.xlsx$/i);
         const priceBuffer = await downloadYandexFile(token, priceFile.path, pricesKey);
@@ -109,7 +114,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.info("stock sync complete", JSON.stringify({ sourceFile: latest.name, mode: apply ? "applied" : "preview", priceStatus: prices.status }));
+    const alert = prices.status === "failed" ? await sendSyncAlert() : null;
+    console.info("stock sync complete", JSON.stringify({ sourceFile: latest.name, mode: apply ? "applied" : "preview", priceStatus: prices.status, alert }));
     return NextResponse.json({
       ok: prices.status !== "failed",
       mode: apply ? "applied" : "preview",
@@ -119,10 +125,12 @@ export async function GET(request: NextRequest) {
       preview,
       result,
       prices,
+      alert,
     }, { status: prices.status === "failed" ? 503 : 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown sync error";
     console.error("stock sync failed", message);
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const alert = await sendSyncAlert();
+    return NextResponse.json({ ok: false, error: "Не удалось подтвердить обновление источника", alert }, { status: 503 });
   }
 }
