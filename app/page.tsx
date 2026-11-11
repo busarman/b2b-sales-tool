@@ -8,6 +8,7 @@ const SCENARIOS = [
 ];
 
 export default function HomePage() {
+  const materialsUrl = process.env.MATERIALS_PUBLIC_URL;
   return (
     <main className="min-h-dvh bg-zinc-100 pb-8">
       <section className="bg-zinc-950 text-white">
@@ -56,11 +57,12 @@ export default function HomePage() {
           />
 
           <LauncherCard
-            href="https://disk.360.yandex.ru/client/shared"
+            href={materialsUrl ?? ""}
             eyebrow="Материалы для работы"
             title="Общий доступ"
             description="Брошюры, обучающие материалы и общие документы для дилеров и менеджеров."
-            buttonLabel="Открыть материалы"
+            buttonLabel={materialsUrl ? "Открыть материалы" : "Материалы готовятся"}
+            disabled={!materialsUrl}
             external
           />
         </div>
@@ -93,6 +95,7 @@ function LauncherCard({
   description,
   buttonLabel,
   external = false,
+  disabled = false,
 }: {
   href: string;
   eyebrow: string;
@@ -100,14 +103,10 @@ function LauncherCard({
   description: string;
   buttonLabel: string;
   external?: boolean;
+  disabled?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer" : undefined}
-      className="rounded-[30px] border border-zinc-200 bg-white p-5 shadow-sm transition active:scale-[0.99]"
-    >
+  const content = (
+    <>
       <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">
         {eyebrow}
       </div>
@@ -121,6 +120,12 @@ function LauncherCard({
       <div className="mt-5 inline-flex min-h-11 items-center rounded-2xl bg-zinc-950 px-4 text-sm font-medium text-white">
         {buttonLabel}
       </div>
-    </Link>
+    </>
+  );
+  const className = "rounded-[30px] border border-zinc-200 bg-white p-5 shadow-sm transition active:scale-[0.99]";
+  return disabled ? (
+    <div aria-disabled="true" className={className}>{content}</div>
+  ) : (
+    <Link href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className={className}>{content}</Link>
   );
 }

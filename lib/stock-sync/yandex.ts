@@ -18,6 +18,7 @@ async function yandexRequest<T>(path: string, token: string) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: { Authorization: `OAuth ${token}` },
     cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
   });
 
   if (!response.ok) {
@@ -30,7 +31,8 @@ async function yandexRequest<T>(path: string, token: string) {
 export async function findLatestStockWorkbook(
   token: string,
   directory: string,
-  publicKey?: string
+  publicKey?: string,
+  filenamePattern = /^PQ for dealers_\d{8}\.xlsx$/i
 ) {
   const fields = "_embedded.items.name,_embedded.items.path,_embedded.items.type,_embedded.items.modified,_embedded.items.size";
   const params = new URLSearchParams({
@@ -47,11 +49,11 @@ export async function findLatestStockWorkbook(
 
   const candidates = (resource._embedded?.items ?? [])
     .filter((item) => item.type === "file")
-    .filter((item) => /^PQ for dealers_\d{8}\.xlsx$/i.test(item.name))
+    .filter((item) => filenamePattern.test(item.name))
     .sort((a, b) => b.name.localeCompare(a.name));
 
   const latest = candidates[0];
-  if (!latest) throw new Error("В папке Яндекс Диска не найден файл PQ for dealers_YYYYMMDD.xlsx");
+  if (!latest) throw new Error("В папке Яндекс Диска не найден ожидаемый файл XLSX");
   return latest;
 }
 
@@ -69,7 +71,10 @@ export async function downloadYandexFile(
   );
   if (!link.href) throw new Error("Yandex Disk API не вернул ссылку скачивания");
 
-  const response = await fetch(link.href, { cache: "no-store" });
+  const response = await fetch(link.href, { cache: "no-store", signal: AbortSignal.timeout(20_000) });
   if (!response.ok) throw new Error(`Не удалось скачать XLSX: HTTP ${response.status}`);
-  return Buffer.from(await response.arrayBuffer());
+  if (Number(response.headers.get("content-length")) > 20 * 1024 * 1024) throw new Error("Файл XLSX превышает допустимый размер");
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length > 20 * 1024 * 1024) throw new Error("Файл XLSX превышает допустимый размер");
+  return bytes;
 }

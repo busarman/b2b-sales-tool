@@ -9,8 +9,7 @@ export function rrcPrice(value?: number | null) {
 }
 
 export function formatRrcPrice(value?: number | null) {
-  const price = rrcPrice(value);
-  return price == null
+  return value == null || !Number.isFinite(value) || value <= 0
     ? "—"
-    : price.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
+    : Math.round(value).toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 }

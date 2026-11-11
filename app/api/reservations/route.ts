@@ -44,12 +44,14 @@ function normalizeInn(value: unknown) {
 }
 
 function normalizePrice(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
   const normalized = String(value ?? "")
     .replace(/\s/g, "")
-    .replace(",", ".")
-    .replace(/[^0-9.]/g, "");
+    .replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
   const price = Number(normalized);
-  return Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : null;
+  return Number.isFinite(price) && price > 0 && price <= Number.MAX_SAFE_INTEGER / 100
+    ? Math.round(price * 100) / 100 : null;
 }
 
 function normalizeRequiredText(value: unknown) {
@@ -131,7 +133,9 @@ async function sendReservationEmail(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "Idempotency-Key": `b2b-reservation-${requestId}`,
     },
+    signal: AbortSignal.timeout(10_000),
     body: JSON.stringify({
       from,
       to: [to],
@@ -157,6 +161,9 @@ export async function POST(request: NextRequest) {
   let payload: ReservationPayload;
   try {
     payload = (await request.json()) as ReservationPayload;
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("Invalid payload");
+    }
   } catch {
     return NextResponse.json({ ok: false, error: "Некорректный формат запроса" }, { status: 400 });
   }
@@ -169,7 +176,7 @@ export async function POST(request: NextRequest) {
   const dealerName = normalizeRequiredText(payload.dealerName);
   const idempotencyKey = requestKey(payload.requestKey);
 
-  if (!inventoryId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inventoryId)) {
     return NextResponse.json({ ok: false, error: "Не выбрана техника" }, { status: 400 });
   }
   if (!/^(\d{10}|\d{12})$/.test(buyerInn)) {
@@ -192,13 +199,21 @@ export async function POST(request: NextRequest) {
     const client = serverClient();
     const { data: existingRequest, error: existingError } = await client
       .from("reservation_requests")
-      .select("id")
+      .select("id,email_status")
       .eq("request_key", idempotencyKey)
-      .maybeSingle<{ id: string }>();
+      .maybeSingle<{ id: string; email_status: string }>();
 
     if (existingError) throw new Error(existingError.message);
     if (existingRequest) {
-      return NextResponse.json({ ok: true, requestId: existingRequest.id, duplicate: true });
+      if (existingRequest.email_status === "sent") {
+        return NextResponse.json({ ok: true, requestId: existingRequest.id, duplicate: true });
+      }
+      return NextResponse.json(
+        { ok: false, requestId: existingRequest.id, error: existingRequest.email_status === "failed"
+          ? "Заявка сохранена, но письмо не отправлено. Свяжитесь с менеджером и укажите номер заявки: " + existingRequest.id
+          : "Заявка уже сохранена, отправка письма ещё не подтверждена. Повторите проверку позже." },
+        { status: existingRequest.email_status === "failed" ? 503 : 409 }
+      );
     }
 
     const fingerprint = requestFingerprint(request);

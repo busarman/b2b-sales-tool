@@ -180,7 +180,7 @@ export default function ComparePage() {
               <CompareBlock
                 title="Коммерция"
                 rows={[
-                  { label: "РРЦ", values: items.map((item) => formatPriceValue(item.price_with_vat)) },
+                  { label: "РРЦ", values: items.map((item) => formatPriceValue(item.rrc_with_vat)) },
                   {
                     label: "Валюта",
                     values: items.map((item) => formatText(item.contract_currency)),
@@ -328,7 +328,7 @@ function formatPriceValue(value?: number | null) {
 }
 
 function formatPrice(item: CompareItem) {
-  const price = formatPriceValue(item.price_with_vat);
+  const price = formatPriceValue(item.rrc_with_vat);
 
   if (price === "—") {
     return "—";

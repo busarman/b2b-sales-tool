@@ -222,6 +222,7 @@ function transformSpot(
     status: column(headers, ["Статус", "status"]),
     currency: column(headers, ["Валюта", "contract_currency"]),
     price: column(headers, ["Цена дилера, без НДС.", "Цена дилера без НДС", "price_without_vat"]),
+    priceWithVat: column(headers, ["Цена дилера, с НДС. (см примечание)", "Цена дилера с НДС", "price_with_vat"]),
     deliveryTerms: column(headers, ["Условия отгрузки_1", "delivery_terms"]),
     delivery: column(headers, ["Срок поставки до склада Орёл", "delivery"]),
     specification: column(headers, ["Ссылка на спецификацию", "specification"]),
@@ -256,6 +257,7 @@ function transformSpot(
     const model = text(value(row, columns.model));
     const sourceStatus = normalize(value(row, columns.status));
     const priceWithoutVat = numberValue(value(row, columns.price));
+    const priceWithVat = numberValue(value(row, columns.priceWithVat));
 
     if (!sourceStatus.includes("налич")) return;
     if (!externalId) issues.push({ sheet: sheet.sheet, row: rowNumber, message: "Не указан ID" });
@@ -273,7 +275,9 @@ function transformSpot(
       status: "Stock_CNH_Europe",
       contract_currency: optionalText(value(row, columns.currency)),
       price_with_vat:
-        priceWithoutVat == null ? null : Math.round(priceWithoutVat * vatMultiplier),
+        priceWithVat != null
+          ? Math.round(priceWithVat)
+          : priceWithoutVat == null ? null : Math.round(priceWithoutVat * vatMultiplier),
       delivery_terms: optionalText(value(row, columns.deliveryTerms)),
       delivery: optionalText(value(row, columns.delivery)),
       specification: optionalText(value(row, columns.specification)),

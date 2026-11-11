@@ -1,6 +1,9 @@
 "use client";
 
-const COMPARE_STORAGE_KEY = "b2b_compare_items_v1";
+import { rrcPrice } from "./pricing";
+
+const COMPARE_STORAGE_KEY = "b2b_compare_items_v2";
+const LEGACY_STORAGE_KEY = "b2b_compare_items_v1";
 const COMPARE_LIMIT = 3;
 export const COMPARE_STORAGE_EVENT = "b2b-compare-updated";
 
@@ -16,7 +19,7 @@ export type CompareItem = {
   production_year?: number | null;
   status?: string | null;
   location?: string | null;
-  price_with_vat?: number | null;
+  rrc_with_vat?: number | null;
   contract_currency?: string | null;
   specification?: string | null;
   external_id?: string | null;
@@ -68,9 +71,9 @@ function normalizeCompareItem(value: unknown): CompareItem | null {
       typeof item.location === "string" || item.location == null
         ? item.location
         : null,
-    price_with_vat:
-      typeof item.price_with_vat === "number" || item.price_with_vat == null
-        ? item.price_with_vat
+    rrc_with_vat:
+      typeof item.rrc_with_vat === "number" || item.rrc_with_vat == null
+        ? item.rrc_with_vat
         : null,
     contract_currency:
       typeof item.contract_currency === "string" || item.contract_currency == null
@@ -114,7 +117,23 @@ function compareKey(item: Pick<CompareItem, "id" | "source">) {
 function readItems(): CompareItem[] {
   if (!canUseStorage()) return [];
 
-  const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
+  let raw = localStorage.getItem(COMPARE_STORAGE_KEY);
+  const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (legacy) {
+    try {
+      const oldItems = JSON.parse(legacy);
+      if (!raw && Array.isArray(oldItems)) {
+        const migrated = oldItems.map((value: Record<string, unknown>) =>
+          normalizeCompareItem({ ...value, rrc_with_vat: rrcPrice(typeof value?.price_with_vat === "number" ? value.price_with_vat : null) })
+        ).filter((item): item is CompareItem => item !== null);
+        raw = JSON.stringify(migrated);
+        localStorage.setItem(COMPARE_STORAGE_KEY, raw);
+      }
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+  }
   if (!raw) return [];
 
   try {

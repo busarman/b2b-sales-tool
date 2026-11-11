@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import {
   COMPARE_STORAGE_EVENT,
   addCompareItem,
@@ -10,18 +9,6 @@ import {
   type CompareItem,
 } from "../lib/compare-storage";
 import { formatRrcPrice } from "../lib/pricing";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  }
-);
 
 type Item = {
   id: string;
@@ -36,7 +23,7 @@ type Item = {
   serial_number?: string | null;
   arrival_date?: string | null;
   contract_currency?: string | null;
-  price_with_vat?: number | null;
+  rrc_with_vat?: number | null;
   specification?: string | null;
   warranty?: string | null;
 };
@@ -120,6 +107,8 @@ export default function InventoryPage() {
     urls: string[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [brand, setBrand] = useState("");
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -136,52 +125,32 @@ export default function InventoryPage() {
   const [reservationRequestKey, setReservationRequestKey] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      let query = supabase
-        .from("inventory")
-        .select("*");
-
-      if (process.env.NEXT_PUBLIC_STOCK_SYNC_ACTIVE === "true") {
-        query = query.eq("is_active", true);
+      setLoading(true);
+      setLoadError("");
+      try {
+        const response = await fetch("/api/catalog/inventory", {
+          cache: "no-store", signal: AbortSignal.timeout(15_000),
+        });
+        if (!response.ok) throw new Error("Catalog unavailable");
+        const data = await response.json();
+        if (cancelled) return;
+        setItems(data.items as Item[]);
+        setPhotos(data.photos as EquipmentPhoto[]);
+        setBrochures(data.brochures as EquipmentBrochure[]);
+      } catch {
+        if (!cancelled) {
+          setItems([]);
+          setLoadError("Не удалось загрузить каталог. Проверьте подключение и повторите попытку.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const { data, error } = await query.order("status_priority", { ascending: true });
-
-      if (error) {
-        console.error(error);
-        setItems([]);
-      } else {
-        setItems((data ?? []) as Item[]);
-      }
-
-      const { data: photoData, error: photoError } = await supabase
-        .from("equipment_photos")
-        .select("configuration,public_url,sort_order")
-        .order("sort_order", { ascending: true });
-
-      if (photoError) {
-        console.error(photoError);
-        setPhotos([]);
-      } else {
-        setPhotos((photoData ?? []) as EquipmentPhoto[]);
-      }
-
-      const { data: brochureData, error: brochureError } = await supabase
-        .from("equipment_brochures")
-        .select("model_key,file_name,public_url");
-
-      if (brochureError) {
-        console.error(brochureError);
-        setBrochures([]);
-      } else {
-        setBrochures((brochureData ?? []) as EquipmentBrochure[]);
-      }
-
-      setLoading(false);
     }
-
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [loadAttempt]);
 
   useEffect(() => {
     function syncCompareCount() {
@@ -410,7 +379,14 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {loadError && (
+          <div role="alert" className="rounded-[24px] border border-amber-300 bg-white p-4 text-sm text-zinc-700">
+            {loadError}
+            <button onClick={() => setLoadAttempt((value) => value + 1)} className="mt-3 block rounded-xl bg-zinc-950 px-4 py-2 text-white">Повторить</button>
+          </div>
+        )}
+
+        {!loading && !loadError && filtered.length === 0 && (
           <div className="rounded-[24px] border border-zinc-200 bg-white px-4 py-5 text-sm text-zinc-600 shadow-sm">
             Ничего не найдено
           </div>
@@ -454,7 +430,7 @@ export default function InventoryPage() {
                       РРЦ
                     </div>
                     <div className="mt-1 text-2xl font-semibold leading-none">
-                      {formatRrcPrice(item.price_with_vat)}
+                      {formatRrcPrice(item.rrc_with_vat)}
                     </div>
                     <div className="mt-1 text-sm text-white/60">
                       {item.contract_currency ?? "Без валюты"}
@@ -743,7 +719,7 @@ function toCompareItem(item: Item): CompareItem {
     production_year: item.production_year ?? null,
     status: item.status ?? null,
     location: item.location ?? null,
-    price_with_vat: item.price_with_vat ?? null,
+    rrc_with_vat: item.rrc_with_vat ?? null,
     contract_currency: item.contract_currency ?? null,
     specification: item.specification ?? null,
     external_id: item.external_id ?? null,

@@ -5,6 +5,7 @@ import {
   applyStockSync,
   loadBrandResolver,
   previewStockSync,
+  stockSyncClient,
 } from "@/lib/stock-sync/supabase";
 import { downloadYandexFile, findLatestStockWorkbook } from "@/lib/stock-sync/yandex";
 import type { WorkbookSheet } from "@/lib/stock-sync/types";
@@ -79,15 +80,46 @@ export async function GET(request: NextRequest) {
       ? await applyStockSync(transformed.inventory, transformed.spot, latest.name)
       : null;
 
+    let prices: Record<string, unknown> = { status: "not_configured" };
+    const pricesDirectory = process.env.YANDEX_DISK_PRICES_PATH;
+    if (pricesDirectory) {
+      try {
+        const pricesKey = process.env.YANDEX_DISK_PRICES_PUBLIC_KEY || undefined;
+        const priceFile = await findLatestStockWorkbook(token, pricesDirectory, pricesKey, /^PQ PL for dealers_\d{8}\.xlsx$/i);
+        const priceBuffer = await downloadYandexFile(token, priceFile.path, pricesKey);
+        const priceSheets = (await readExcelFile(priceBuffer)) as WorkbookSheet[];
+        const priceRows = transformStockWorkbook(priceSheets, resolver, vatMultiplier);
+        if (priceRows.issues.length || [...priceRows.inventory, ...priceRows.spot].some((row) => row.price_with_vat == null || !row.contract_currency)) {
+          throw new Error("Прайс не прошёл проверку структуры, идентификации или цен");
+        }
+        let priceResult = null;
+        if (apply) {
+          const response = await stockSyncClient().rpc("apply_equipment_price_sync", {
+            p_inventory: priceRows.inventory,
+            p_spot: priceRows.spot,
+            p_source_file: priceFile.name,
+          });
+          if (response.error) throw new Error(response.error.message);
+          priceResult = response.data;
+        }
+        prices = { status: apply ? "applied" : "preview", sourceFile: priceFile.name, result: priceResult };
+      } catch (error) {
+        console.error("price sync failed");
+        prices = { status: "failed", error: error instanceof Error ? error.message : "Price sync failed" };
+      }
+    }
+
+    console.info("stock sync complete", JSON.stringify({ sourceFile: latest.name, mode: apply ? "applied" : "preview", priceStatus: prices.status }));
     return NextResponse.json({
-      ok: true,
+      ok: prices.status !== "failed",
       mode: apply ? "applied" : "preview",
       sourceFile: latest.name,
       sourceModifiedAt: latest.modified ?? null,
       sourceSize: latest.size ?? null,
       preview,
       result,
-    });
+      prices,
+    }, { status: prices.status === "failed" ? 503 : 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown sync error";
     console.error("stock sync failed", message);

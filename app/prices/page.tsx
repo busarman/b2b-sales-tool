@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import {
   COMPARE_STORAGE_EVENT,
   addCompareItem,
@@ -10,18 +9,6 @@ import {
   type CompareItem,
 } from "../lib/compare-storage";
 import { formatRrcPrice } from "../lib/pricing";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  }
-);
 
 type SpotItem = {
   id: number;
@@ -32,7 +19,7 @@ type SpotItem = {
   production_year?: number | null;
   status?: string | null;
   contract_currency?: string | null;
-  price_with_vat?: number | null;
+  rrc_with_vat?: number | null;
   delivery_terms?: string | null;
   delivery?: string | null;
   specification?: string | null;
@@ -52,36 +39,36 @@ function statusLabel(status?: string | null) {
 export default function CnhiSpotPage() {
   const [items, setItems] = useState<SpotItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [brand, setBrand] = useState("");
   const [search, setSearch] = useState("");
   const [compareCount, setCompareCount] = useState(() => getCompareCount());
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      let query = supabase
-        .from("cnhi_spot")
-        .select("*");
-
-      if (process.env.NEXT_PUBLIC_STOCK_SYNC_ACTIVE === "true") {
-        query = query.eq("is_active", true);
+      setLoading(true);
+      setLoadError("");
+      try {
+        const response = await fetch("/api/catalog/spot", {
+          cache: "no-store", signal: AbortSignal.timeout(15_000),
+        });
+        if (!response.ok) throw new Error("Catalog unavailable");
+        const data = await response.json();
+        if (!cancelled) setItems(data.items as SpotItem[]);
+      } catch {
+        if (!cancelled) {
+          setItems([]);
+          setLoadError("Не удалось загрузить каталог. Проверьте подключение и повторите попытку.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const { data, error } = await query
-        .order("brand", { ascending: true })
-        .order("model", { ascending: true });
-
-      if (error) {
-        console.error(error);
-        setItems([]);
-      } else {
-        setItems((data ?? []) as SpotItem[]);
-      }
-
-      setLoading(false);
     }
-
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [loadAttempt]);
 
   useEffect(() => {
     function syncCompareCount() {
@@ -225,7 +212,14 @@ export default function CnhiSpotPage() {
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {loadError && (
+          <div role="alert" className="rounded-[24px] border border-amber-300 bg-white p-4 text-sm text-zinc-700">
+            {loadError}
+            <button onClick={() => setLoadAttempt((value) => value + 1)} className="mt-3 block rounded-xl bg-zinc-950 px-4 py-2 text-white">Повторить</button>
+          </div>
+        )}
+
+        {!loading && !loadError && filtered.length === 0 && (
           <div className="rounded-[24px] border border-zinc-200 bg-white px-4 py-5 text-sm text-zinc-600 shadow-sm">
             Ничего не найдено
           </div>
@@ -257,7 +251,7 @@ export default function CnhiSpotPage() {
                   РРЦ
                 </div>
                 <div className="mt-1 text-2xl font-semibold leading-none">
-                  {formatRrcPrice(item.price_with_vat)}
+                  {formatRrcPrice(item.rrc_with_vat)}
                 </div>
                 <div className="mt-1 text-sm text-white/60">
                   {item.contract_currency ?? "Без валюты"}
@@ -322,7 +316,7 @@ function toCompareItem(item: SpotItem): CompareItem {
     production_year: item.production_year ?? null,
     status: item.status ?? null,
     location: null,
-    price_with_vat: item.price_with_vat ?? null,
+    rrc_with_vat: item.rrc_with_vat ?? null,
     contract_currency: item.contract_currency ?? null,
     specification: item.specification ?? null,
     external_id: item.external_id ?? null,
